@@ -1,0 +1,112 @@
+Com locks de exclusão mútua, e seguindo o 2 Phase Locking, o banco é todo bloqueado quando
+2 threads colidem em alguma conta.
+
+Tempo em que a Thread X mantém controlo exclusivo sobre o Banco e as contas A e B durante uma transferência
+(sendo A a conta debitada e B a conta creditada)
+
+[A -> B] - [Com locks de exclusão mútua, e seguindo o 2 Phase Locking]
++---------------------------------------------------------------------------------------------------------------------------------------+
+|	  (Banco.lock())											    (Banco.unlock())	|
+|			(A.lock())	(A.withdraw(x))							(A.unlock())			|
+|							(B.lock())	(B.deposit(x))	    (B.unlock())				|
++---------------------------------------------------------------------------------------------------------------------------------------+
+| Banco - ##########################################################################################################################	|
+|																	|
+|   A   -		############################################################################################			|
+|																	|
+|   B   -			           		################################################				|
++---------------------------------------------------------------------------------------------------------------------------------------+
+
+[A -> B] - [Método Artesanal]
++---------------------------------------------------------------------------------------------------------------------------------------+
+|	  (Banco.lock())(Banco.unlock())												|
+|			(A.lock())	(A.withdraw(x)) (A.unlock())									|
+|			(B.lock())			(B.deposit(x))	    (B.unlock())						|
++---------------------------------------------------------------------------------------------------------------------------------------+
+| Banco - ##############################												|
+|																	|
+|   A   -		############################################									|
+|																	|
+|   B   -		################################################################	           				|
++---------------------------------------------------------------------------------------------------------------------------------------+
+
+Se só usarmos ReentrantLocks, podemos mudar a ordem dos .lock()'s e .unlock()'s de maneira a libertar elementos o mais cedo possível (de 
+maneira à thread atual não monopolizar elementos que já foram utilizados e que não têm necessidade de ficar parados/ à espera que todos 
+os outros sejam usados). 
+Assim, outras threads não vão ter de esperar tanto tempo para ter acesso a esses elementos.
+
+
+
+[Com locks de exclusão mútua, e seguindo o 2 Phase Locking]
+
+	Thread 1: Banco.transferir("Conta A", "Conta B", 5)
+		(= … -> A.lock() -> A.levantar(5) -> ... -> B.depositar(5)) -> … -> A.unlock())
+
+	Thread 2: Banco.depositar("Conta A",10)
+		(= … -> A.lock() -> A.depositar(5) -> A.unlock())
+
++-------------------------------------------------------+-------------------------------------------------------+
+|			Thread 1			|			Thread 2			|
++-------------------------------------------------------+-------------------------------------------------------+
+|	Banco.transferir("Conta A", "Conta B", 5)	|			  				|
+|			   …				|			   …				|
+|			A.lock()			|			   … 				|
+|		Banco.levantar("Conta A",5)		|	  (à espera do .unlock() da "Conta A")		|
+|			   …				|			   … 				|
+|		     B.depositar(5)			|			   … 				|
+|			   …				|			   … 				|
+|		       A.unlock()			|			   … 				|
+|			   … 				|		        A.lock()			|
+|			   … 				|		     A.depositar(5)			|
+|			   … 				|		       A.unlock()			|
++-------------------------------------------------------+-------------------------------------------------------+
+
+
+[Método Artesanal]
+
+	Thread 1: Banco.transferir("Conta A", "Conta B", 5)
+		(= … -> A.lock() -> A.levantar(5) -> A.unlock() -> ... -> B.depositar(5)) -> …)
+
+	Thread 2: Banco.depositar("Conta A",10)
+		(= … -> A.lock() -> A.depositar(5) -> A.unlock())
++-------------------------------------------------------+-------------------------------------------------------+
+|			Thread 1			|			Thread 2			|
++-------------------------------------------------------+-------------------------------------------------------+
+|	Banco.transferir("Conta A", "Conta B", 5)	|			  				|
+|			   …				|			   …				|
+|			A.lock()			|			   … 				|
+|		Banco.levantar("Conta A",5)		|	  (à espera do .unlock() da "Conta A")		|
+|		       A.unlock()			|			   … 				|
+|			   …				|		        A.lock()			|
+|		     B.depositar(5)			|		     A.depositar(5)			|
+|			   …				|		       A.unlock()			|
+|			   …				|			   …				|
++-------------------------------------------------------+-------------------------------------------------------+
+
+
+(tendo o código já escrito em mente)
+Caso não se implemente corretamente, o método artesanal pode tornar o registo de dados inconsistente.
+Imaginemos que o .lock() da conta B está depois do .unlock() do banco, se numa thread-X transferirmos 
+50€ da conta B a uma conta A e numa thread-Y tentarmos levantar todo o dinheiro da conta B, é possível 
+que o programa:
+
+[B = 100 | A = 0 ]	1. [Thread X] Confirme que a conta A e B existam;
+[B = 100 | A = 0 ]	2. [Thread X] Faça .unlock() do banco;
+	
+[B = 100 | A = 0 ]	3. [Thread Y] Faça .lock() da conta B;
+[B = 0   | A = 0 ]	4. [Thread Y] Levante todo o dinheiro da conta B;
+[B = 0   | A = 0 ]	5. [Thread Y] Faça .unlock() da conta B (agora independente do banco);
+
+[B = 0 	 | A = 0 ]	6. [Thread X] Faça .lock() da conta B;
+[B = 0 	 | A = 0 ]	7. [Thread X] Tente retirar da conta B 50€ (como não tem pelo menos 50€ não vai 
+				      retirar nada);
+[B = 0 	 | A = 0 ]	8. [Thread X] Faça .unlock() da conta B
+[B = 0 	 | A = 0 ]	9. [Thread X] Faça .lock() da conta A;
+[B = 0 	 | A = 50]	10.[Thread X] Deposite na conta A 50€ (mesmo sem ser retirado nada da conta B, 
+				      a confirmação que ambas contas existam é suficiente);
+[B = 0 	 | A = 50]	11.[Thread X] Faça .unlock() da conta A;
+[B = 0 	 | A = 50]	12.[Thread X] ...
+	
+
+Descubra qual seria o comportamento errado introduzido. Tente descobrir algum modo “artesanal”
+de o corrigir.
