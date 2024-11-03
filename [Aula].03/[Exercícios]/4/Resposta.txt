@@ -108,5 +108,10 @@ que o programa:
 [B = 0 	 | A = 50]	12.[Thread X] ...
 	
 
-Descubra qual seria o comportamento errado introduzido. Tente descobrir algum modo “artesanal”
-de o corrigir.
+Este é só um dos possíveis comportamentos errados que podem vir a acontecer devido a uma 
+condição de corrida.
+
+Para evitar casos assim … só temos fazer .unlock() ao Banco depois de fazermos .lock() a ambas contas
+simultaneamente, sendo só no fim o .unlock() da conta creditada e debitada.
+
+Para outros casos, é bom princípio usar-se senso comum e ter cuidado com o código escrito.
