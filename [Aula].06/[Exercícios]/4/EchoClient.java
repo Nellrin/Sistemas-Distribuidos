@@ -13,23 +13,25 @@ public class EchoClient{
 
         BufferedReader systemIn = new BufferedReader(new InputStreamReader(System.in));
 
-        String serverResponse;
+        String serverResponse = null;
         String userInput = null;
 
-        while((userInput = systemIn.readLine()) != null){
+        while(true){
+            userInput = systemIn.readLine();
             out.println(userInput);
             out.flush();
             
             serverResponse = in.readLine();     
             
-            if(userInput.equals("Close Server") || userInput.isBlank()){
-                System.out.println("A média é de: " + serverResponse);
-                break;
-            }
+            if(userInput == null)
+            break;
+
 
             else
             System.out.println("Somatório atual: " + serverResponse);
         }
+        
+        System.out.println("A média é de: " + serverResponse);
 
         socket.shutdownOutput();
         socket.shutdownInput();

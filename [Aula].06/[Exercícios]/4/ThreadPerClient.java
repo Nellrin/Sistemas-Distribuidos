@@ -23,20 +23,29 @@ public class ThreadPerClient implements Runnable{
 
           String line = null;
 
+          double x,total = 0;
+          int amount = 0;
+
           while((line = in.readLine()) != null){
 
             System.out.println("[" + ss.getInetAddress() + "]: " + line);
 
-            try{st.add(Double.parseDouble(line));} 
+            try{
+              x = Double.parseDouble(line);
+              st.add(x);
+              total += x;
+              amount++;
+            } 
             catch(NumberFormatException e){
-              out.println(st.done());
-              out.flush();
               break;
             }
             
-            out.println(st.total());
+            out.println(total);
             out.flush();
           }
+
+          out.println(st.done());
+          out.flush();
 
           this.ss.shutdownOutput();
           this.ss.shutdownInput();

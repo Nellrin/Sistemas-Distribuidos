@@ -23,12 +23,12 @@ public class EchoClient{
             serverResponse = in.readLine();     
             
             if(userInput.equals("Close Server") || userInput.isBlank()){
-                System.out.println(serverResponse);
+                System.out.println("A média é de: " + serverResponse);
                 break;
             }
 
             else
-            System.out.println(serverResponse);
+            System.out.println("Somatório atual: " + serverResponse);
         }
 
         socket.shutdownOutput();
