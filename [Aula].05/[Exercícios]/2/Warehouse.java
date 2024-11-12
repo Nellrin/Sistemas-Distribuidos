@@ -3,11 +3,12 @@ import java.util.concurrent.locks.*;
 
 class Warehouse {
     private Map<String, Product> map =  new HashMap<String, Product>();
-    private Map<String, Condition> mapThread =  new HashMap<String, Condition>();
     private ReentrantLock lock = new ReentrantLock();
+    //private Map<String, Condition> mapThread =  new HashMap<String, Condition>();
 
     private class Product{ 
-      int quantity = 0; 
+      int quantity = 0;
+      public Condition prodCond = lock.newCondition();
       private Set<String> threads = new HashSet<>();
     }
 
@@ -26,13 +27,16 @@ class Warehouse {
           Product p = get(item);
 
           p.quantity += quantity;
-
+          p.prodCond.signalAll();
+      /*
           if(p.quantity == 0 && quantity > 0 && !p.threads.isEmpty()){
+            
             p.threads.forEach(id -> {
               Condition c = mapThread.get(id);
               c.signal();
             }); 
           }
+      */
 
         } finally {
           this.lock.unlock();
@@ -42,7 +46,7 @@ class Warehouse {
     public void consume(Set<String> items) throws InterruptedException{
         this.lock.lock();
         
-        String thread = Thread.currentThread().getName();
+        //String thread = Thread.currentThread().getName();
 
         try{
           boolean flag;
@@ -52,41 +56,36 @@ class Warehouse {
             for(String s : items){
               Product p = this.get(s);
               if(p.quantity == 0){
-                p.threads.add(thread);
                 flag = true;
+                p.await();
+        //      p.threads.add(thread);
               }
             }
 
-            if(flag){
-              Condition c = this.mapThread.get(thread);
-              
-              if(c == null){
-                c = this.lock.newCondition();
-                this.mapThread.put(thread,c);
-              }
-
-              c.await();
-
-              break;
-            }
+        //  if(flag){
+        //    Condition c = this.mapThread.get(thread);
+        //    if(c == null){
+        //      c = this.lock.newCondition();
+        //      this.mapThread.put(thread,c);
+        //    }
+        //    c.await();
+        //    break;
+        //  }
             
           }while(flag);
 
 
           for(String s : items){
             Product p = this.get(s);
-            
-            if(p.threads.contains(thread))
-            p.threads.remove(thread);
-
+        //    if(p.threads.contains(thread))
+        //    p.threads.remove(thread);
             p.quantity--;
           }
 
-          this.mapThread.remove(thread);
+        //  this.mapThread.remove(thread);
 
         } finally {
           this.lock.unlock();
-
         }
     }
 
