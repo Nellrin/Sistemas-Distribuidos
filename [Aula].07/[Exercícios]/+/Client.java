@@ -5,7 +5,6 @@ import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.Socket;
-import java.net.SocketException;
 import java.util.ArrayList;
 import java.util.Arrays;
 
@@ -14,9 +13,9 @@ public class Client {
     public static Contact parseLine(String userInput) {
         String[] tokens = userInput.split(" ");
 
-        //System.out.println(tokens.length);
+        System.out.println(tokens.length);
 
-        if(tokens.length < 3 || tokens[0] == null) return null;
+        if(tokens.length < 4 || tokens[0] == null) return null;
 
         if (tokens[3].equals("null")) tokens[3] = null;
 
@@ -39,71 +38,47 @@ public class Client {
 
         String userInput, serverResponse = null;
 
-
               ContactList x =  ContactList.deserialize(fromServer);
         
               for(Contact c : x)
               System.out.println(c.toString());
 
+        try{
 
-        while ((userInput = in.readLine()) != null){
-            try{
-              if(!userInput.contains(" ") && userInput.length() > 0){
-                toServer.writeInt(3);
-                toServer.flush();
-                
-                toServer.writeUTF(userInput);
-                toServer.flush();
-
-                int amount = fromServer.readInt()
-
-                for(int i = 0; i < amount; i++)
-                System.out.println(fromServer.readUTF());
-                
-              }
-
-              if(userInput.contains("->")){
-                toServer.writeInt(2);
-                toServer.flush();
-
-                toServer.writeUTF(userInput);
-                toServer.flush();
-              }
-              
-              else{
-                toServer.writeInt(1);
-                toServer.flush();
-
+          while ((userInput = in.readLine()) != null){
+              try{
                 Contact newContact = parseLine(userInput);
 
                 if(newContact == null) continue;
 
 
-                //System.out.println("["+newContact.toString()+"]");
+                System.out.println("["+newContact.toString()+"]");
           
 
+                toServer.writeBoolean(false);
+                toServer.flush();
                 newContact.serialize(toServer);
               
 
                 serverResponse = fromServer.readUTF();
                 System.out.println("\n"+ serverResponse);
+
               }
-            }
-            catch (NumberFormatException e){continue;} 
-            catch (EOFException e){
-              System.out.println("O catch está a impedir o programa de fechar o socket numnuts");
-              break;
 
-            }
-            catch (IOException e){break;}
-        }
+              catch (NumberFormatException e){continue;} 
+              catch (EOFException e){
+                System.out.println("O catch está a impedir o programa de fechar o socket numnuts");
+                break;
 
-        toServer.writeInt(0);
-        toServer.flush();
+              }
+              catch (IOException e){break;}
+          }
 
-        System.out.println("EXITED");
-        
-        try{socket.close();} 
-        catch (IOException e){e.printStackTrace();}
+          toServer.writeBoolean(true);
+          toServer.flush();
+
+          System.out.println("EXITED");
+          
+        } finally{socket.close();} 
     }
 }

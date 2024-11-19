@@ -43,41 +43,42 @@ public class Client {
               for(Contact c : x)
               System.out.println(c.toString());
 
-        while ((userInput = in.readLine()) != null){
-            try{
-              Contact newContact = parseLine(userInput);
+        try{
 
-              if(newContact == null) continue;
+          while ((userInput = in.readLine()) != null){
+              try{
+                Contact newContact = parseLine(userInput);
+
+                if(newContact == null) continue;
 
 
-              System.out.println("["+newContact.toString()+"]");
-        
+                System.out.println("["+newContact.toString()+"]");
+          
 
-              toServer.writeBoolean(false);
-              toServer.flush();
-              newContact.serialize(toServer);
-            
+                toServer.writeBoolean(false);
+                toServer.flush();
+                newContact.serialize(toServer);
+              
 
-              serverResponse = fromServer.readUTF();
-              System.out.println("\n"+ serverResponse);
+                serverResponse = fromServer.readUTF();
+                System.out.println("\n"+ serverResponse);
 
-            }
+              }
 
-            catch (NumberFormatException e){continue;} 
-            catch (EOFException e){
-              System.out.println("O catch está a impedir o programa de fechar o socket numnuts");
-              break;
+              catch (NumberFormatException e){continue;} 
+              catch (EOFException e){
+                System.out.println("O catch está a impedir o programa de fechar o socket numnuts");
+                break;
 
-            }
-            catch (IOException e){break;}
-        }
+              }
+              catch (IOException e){break;}
+          }
 
-        toServer.writeBoolean(true);
-        toServer.flush();
+          toServer.writeBoolean(true);
+          toServer.flush();
 
-        System.out.println("EXITED");
-        
-        try{socket.close();} 
-        catch (IOException e){e.printStackTrace();}
+          System.out.println("EXITED");
+          
+        } finally{socket.close();} 
     }
 }
